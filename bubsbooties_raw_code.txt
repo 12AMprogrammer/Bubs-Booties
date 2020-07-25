@@ -1,0 +1,112 @@
+-- Accesses the Bub's Booties Schema
+use bubsbooties;
+
+-- Creates our customer table.
+CREATE TABLE `bubsbooties`.`customer` (
+  `customer_id` INT NOT NULL,
+  `first_name` VARCHAR(45) NOT NULL,
+  `last_name` VARCHAR(45) NOT NULL,
+  `email_address` VARCHAR(45) NOT NULL,
+  PRIMARY KEY (`customer_id`),
+-- Using the email address field as an index makes it much faster to run a query seach on customers by email. It's a pretty common field to search by in industries.
+  UNIQUE INDEX `email_address_UNIQUE` (`email_address` ASC) VISIBLE);
+
+-- Creates our product table
+CREATE TABLE `bubsbooties`.`product` (
+  `product_id` INT NOT NULL,
+  `product_name` VARCHAR(255) NOT NULL,
+  `product_cost` DECIMAL(6,2) NOT NULL,
+  PRIMARY KEY (`product_id`));
+
+-- Creates our employee table
+CREATE TABLE `bubsbooties`.`employee` (
+  `employee_id` INT NOT NULL,
+  `first_name` VARCHAR(45) NOT NULL,
+  `last_name` VARCHAR(45) NOT NULL,
+  `start_date` DATE NOT NULL,
+  `position` VARCHAR(255) NOT NULL,
+  PRIMARY KEY (`employee_id`));
+
+-- Creates purchases table 
+CREATE TABLE `bubsbooties`.`purchases` (
+  `invoice_id` INT NOT NULL,
+  `customer_id` INT NOT NULL,
+  `employee_id` INT NOT NULL,
+  `product_id` INT NOT NULL,
+  `time_purchased` TIMESTAMP NOT NULL,
+  `total` DECIMAL(6,2) NOT NULL
+  PRIMARY KEY (`invoice_id`),
+  INDEX `purchases_customer_id_idx` (`customer_id` ASC) VISIBLE,
+  INDEX `purchases_employee_id_idx` (`employee_id` ASC) VISIBLE,
+  INDEX `purchases__product_id_idx` (`product_id` ASC) VISIBLE,
+  CONSTRAINT `purchases_customer_id`
+    FOREIGN KEY (`customer_id`)
+    REFERENCES `bubsbooties`.`customer` (`customer_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `purchases_employee_id`
+    FOREIGN KEY (`employee_id`)
+    REFERENCES `bubsbooties`.`employee` (`employee_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `purchases__product_id`
+    FOREIGN KEY (`product_id`)
+    REFERENCES `bubsbooties`.`product` (`product_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION);
+
+-- The following populates the tables with data.
+SELECT * FROM customer;
+INSERT INTO customer VALUES
+(1,'Frank','Castle','punisher@hotmail.com'),
+(2,'Peter','Parker','webhead@gmail.com'),
+(3,'Anthony','Stark','ironman@yahoo.com');
+
+SELECT * FROM employee;
+INSERT INTO employee VALUES
+(1,'Homer','Simpson','2020-05-31','Quality Control Manager'),
+(2,'Hank','Hill','2020-04-21','Propane Contractor'),
+(3,'Robert','Belcher','2020-03-01','Sales Person/Food Manager');
+
+SELECT * FROM product;
+INSERT INTO product VALUES
+(1,'The Big Bootie',8.99),
+(2,'The Medium Bootie',7.99),
+(3,'The Small Bootie',6.99);
+
+SELECT * FROM purchases;
+INSERT INTO purchases VALUES
+(1,2,1,1,'2020-06-03',17.98),
+(2,1,2,2,'2020-06-02',15.98),
+(3,3,3,3,'2020-06-01',13.98);
+
+-- Overview table to show how one might left join some fields to get an idea of what customer is buying the most product.
+SELECT 
+    purchases.invoice_id,
+    customer.first_name,
+    customer.last_name,
+    customer.email_address,
+    product.product_name,
+    purchases.total,
+    employee.last_name,
+    purchases.time_purchased
+FROM purchases
+	-- Used left join so we see all values in purchases (where applicable) and only where records match in the others. Nulls are accepted in right table.
+	LEFT JOIN employee
+		ON employee.employee_id = purchases.employee_id
+	LEFT JOIN customer
+		ON customer.customer_id = purchases.customer_id
+	LEFT JOIN product
+		ON product.product_id = purchases.product_id
+-- We want purchases before June 4th 2020.
+WHERE purchases.time_purchased < '2020-06-04'
+-- We'll group the information on the invoice id.
+GROUP BY purchases.invoice_id
+-- Ordering by totals in descending order gives us a look at our highest spending customer.
+ORDER BY purchases.total DESC;
+
+
+
+
+
+
